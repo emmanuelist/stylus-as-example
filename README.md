@@ -1,12 +1,13 @@
-# Stylus - AssemblyScript example contract (Sieve of Erathosthenes)
+# Stylus - AssemblyScript example contract (Minimum Even Prime)
 
-Example of a basic smart contract written in AssemblyScript and compiled to WebAssembly (WASM) to be used on Arbitrum Stylus. It contains an implementation of the [sieve of Erathosthenes](https://en.wikipedia.org/wiki/Sieve_of_Eratosthenes) algorithm.
+Example of a basic smart contract written in AssemblyScript and compiled to WebAssembly (WASM) to be used on Arbitrum Stylus. It contains a simple function that returns the minimum even prime number, which is always 2.
 
 Stylus is is an upgrade to Arbitrum, an Ethereum-focused, smart contract blockchain that scales the network. In addition to supporting Ethereum smart contracts written in Solidity, Stylus supports contracts written in WebAssembly. Because AssemblyScript compiles to WASM, it can be used to create smart contracts to be used on Stylus.
 
 ## Overview
 
 In order to make your AS contract work on Stylus, there are a few things to keep in mind:
+
 - The main entry point for the WASM contract has to be a specific function called `user_entrypoint`. There's no need to add any configuration options to specify it, but that function must exist, and should receive an i32 (the length of the byte stream received by input) and return another i32 (0 on success, and 1 on error).
 - AssemblyScript will create a [start](https://webassembly.github.io/spec/core/syntax/modules.html#syntax-start) function by default, which is not supported on Stylus. To prevent AS from doing so, you must specify option `--exportStart` and pass a different name for the start function (e.g. `myStart`). Doing this will tell AS to export the start function, instead of explicitly calling it in the compiled wasm file.
 - Input data is read from memory by calling the Stylus function `read_args`
@@ -18,19 +19,52 @@ In order to make your AS contract work on Stylus, there are a few things to keep
 
 This repository holds all these changes and also wraps the Stylus specific flow into its own folder, `stylus`, so the developer only needs to worry about working from the `main()` function in the `app.ts` file. That `main()` function takes the bytes received by the smart contract in Uint8Array form, and has to return the bytes that the smart contract will output, also in Uint8Array form.
 
+## Current Implementation
+
+The `app.ts` file contains:
+
+```typescript
+/**
+ * Returns the minimum even prime number, which is always 2
+ * @param number - input number (ignored since result is always 2)
+ * @returns 2 (the only even prime number)
+ */
+function getMinEvenPrime(number: i32): i32 {
+  // The only even prime number is 2
+  // We ignore the input parameter since the result is always constant
+  return 2;
+}
+
+/**
+ * Main function of your contract
+ * @dev Receives the input of bytes in Uint8Array. Result must also be sent in bytes wrapped in Uint8Array
+ *
+ * @param input bytes in Uint8Array
+ * @returns bytes in Uint8Array containing the value 2
+ */
+export const main = (input: Uint8Array): Uint8Array => {
+  const inputNumber = bytesToI32(input);
+  const minEvenPrime = getMinEvenPrime(inputNumber);
+  return i32ToBytes(minEvenPrime);
+};
+```
+
 ## Installation of the Stylus Cargo subcommand
 
 Install the latest version of [Rust](https://www.rust-lang.org/tools/install), and then install the Stylus CLI tool with Cargo
+
 ```shell
 cargo install cargo-stylus
 ```
 
 Add the wasm32-unknown-unknown build target to your Rust compiler:
+
 ```shell
 rustup target add wasm32-unknown-unknown
 ```
 
 You should now have it available as a Cargo subcommand:
+
 ```shell
 cargo stylus --help
 ```
@@ -38,36 +72,43 @@ cargo stylus --help
 ## Steps to build and test
 
 Install dependencies
+
 ```shell
 yarn
 ```
 
 Compile to WASM
+
 ```shell
 yarn asbuild
 ```
 
-Test locally (optional)
+Test locally (optional - will always return 2 regardless of input)
+
 ```shell
 yarn test:local 56
 ```
 
 Check WASM contract with stylus
+
 ```shell
 cargo stylus check --wasm-file ./build/release.wasm
 ```
 
 Estimate gas usage for deployment
+
 ```shell
 cargo stylus deploy --wasm-file ./build/release.wasm --private-key=YOUR_PRIVATE_KEY --estimate-gas --no-verify
 ```
 
 Deploy smart contract
+
 ```shell
 cargo stylus deploy --wasm-file ./build/release.wasm --private-key=YOUR_PRIVATE_KEY --no-verify
 ```
 
-Test on-chain (modify the contract address at the beginning of the file)
+Test on-chain (modify the contract address at the beginning of the file - will always return 2 regardless of input)
+
 ```shell
 yarn test:onchain 56
 ```
@@ -78,7 +119,13 @@ The file `test/local.js` contains a very basic simulation of how `read_args` and
 
 ## Algorithm implementation
 
-The implementation of the sieve of Erathosthenes algorithm is a slightly modified version of t-katsumura's implementation, available at https://github.com/t-katsumura/webassembly-examples-eratosthenes.
+The current implementation contains a simple function `getMinEvenPrime()` that returns the minimum even prime number, which is mathematically always 2. The function:
+
+- Takes an i32 input parameter (which is ignored since the result is constant)
+- Returns 2, the only even prime number
+- Demonstrates basic input/output handling in a Stylus AssemblyScript contract
+
+The main function receives bytes as input, converts them to i32, calls `getMinEvenPrime()`, and returns the result as bytes.
 
 ## License
 
